@@ -2,7 +2,7 @@ name: Daglig scraper
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # kører hver dag kl. 06:00 UTC = 08:00 dansk tid
+    - cron: '0 23 * * *'  # kører hver dag kl. 01:00 dansk tid
   workflow_dispatch:      # tillader manuel start
 
 jobs:
