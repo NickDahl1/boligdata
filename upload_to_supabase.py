@@ -137,6 +137,31 @@ rename_map = {
 
 flat_df.rename(columns=rename_map, inplace=True)
 
+# Liste over kolonner der skal være Int64 (nullable int)
+int_cols = [
+    'postnummer', 'seneste_vurdering', 'boligareal_m2', 'byggeaar',
+    'bygningsareal_primar_m2', 'bygningsareal_sekundar_m2', 'dage_paa_marked_nu',
+    'dage_paa_marked_total', 'salgspris_kr', 'antal_toiletter', 'antal_vaerelser',
+    'antal_etasjer', 'antal_badevaerelser', 'kaelderareal_m2'
+]
+
+for col in int_cols:
+    if col in flat_df.columns:
+        flat_df[col] = pd.to_numeric(flat_df[col], errors='coerce').astype('Int64')
+
+# Konverter dato-kolonner
+flat_df['opdateringsdato'] = pd.to_datetime(flat_df['opdateringsdato'], errors='coerce')
+if 'aabent_hus_dato' in flat_df.columns:
+    flat_df['aabent_hus_dato'] = pd.to_datetime(flat_df['aabent_hus_dato'], errors='coerce')
+
+# Dobbelttjek bool kolonner er bool dtype
+bool_cols = ['balkon', 'elevator', 'terrasse']
+for col in bool_cols:
+    if col in flat_df.columns:
+        flat_df[col] = flat_df[col].astype(bool)
+
+
+
 # --- Nyt: upload til Supabase/Postgres ---
 
 def upload_to_supabase(df):
