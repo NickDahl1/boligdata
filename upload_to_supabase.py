@@ -11,10 +11,83 @@ result_properties = result['cases']
 df = pd.DataFrame(result_properties)
 
 def flatten_entry(entry, update_date=None):
-    # ... (indsæt din fulde flatten_entry-funktion her uden ændringer)
-    # For korthed, kopier den præcis som du har skrevet
-    # Den er for lang til at gentage fuldt her, men kopier den direkte i din fil
-    pass  # <-- Erstat denne linje med din funktion
+    """Flader et boligopslag fra Boligsidens API til en flad dictionary."""
+    address = entry.get("address", {}) or {}
+    coordinates = entry.get("coordinates", {}) or {}
+    real_estate = entry.get("realEstate", {}) or {}
+    realtor = entry.get("realtor", {}) or {}
+    open_house = entry.get("nextOpenHouse", {}) or {}
+    time_on_market = entry.get("timeOnMarket", {}) or {}
+
+    if not isinstance(address, dict): address = {}
+    if not isinstance(coordinates, dict): coordinates = {}
+    if not isinstance(real_estate, dict): real_estate = {}
+    if not isinstance(realtor, dict): realtor = {}
+    if not isinstance(open_house, dict): open_house = {}
+    if not isinstance(time_on_market, dict): time_on_market = {}
+
+    buildings = address.get("buildings", [])
+    if not isinstance(buildings, list): buildings = []
+
+    main_building_area = 0
+    secondary_building_area = 0
+    if buildings:
+        main_building_area = buildings[0].get("totalArea", 0)
+        secondary_building_area = sum(b.get("totalArea", 0) for b in buildings[1:] if isinstance(b, dict))
+
+    flattened = {
+        # Adresse
+        "address_id": address.get("addressID"),
+        "city": address.get("city", {}).get("name") if isinstance(address.get("city"), dict) else None,
+        "zip_code": address.get("zipCode"),
+        "road": address.get("roadName"),
+        "house_number": address.get("houseNumber"),
+        "municipality": address.get("municipality", {}).get("name") if isinstance(address.get("municipality"), dict) else None,
+        "province": address.get("province", {}).get("name") if isinstance(address.get("province"), dict) else None,
+        "latitude": coordinates.get("lat"),
+        "longitude": coordinates.get("lon"),
+        "valuation": address.get("latestValuation"),
+        "living_area": address.get("livingArea"),
+        "weighted_area": address.get("weightedArea"),
+        "year_built": buildings[0].get("yearBuilt") if buildings and isinstance(buildings[0], dict) else None,
+        "building_area_main": main_building_area,
+        "building_area_secondary": secondary_building_area,
+
+        # RealEstate og Mægler
+        "down_payment": real_estate.get("downPayment"),
+        "gross_mortgage": real_estate.get("grossMortgage"),
+        "net_mortgage": real_estate.get("netMortgage"),
+        "realtor_name": realtor.get("name"),
+        "realtor_email": realtor.get("contactInformation", {}).get("email") if isinstance(realtor.get("contactInformation"), dict) else None,
+        "realtor_phone": realtor.get("contactInformation", {}).get("phone") if isinstance(realtor.get("contactInformation"), dict) else None,
+        "realtor_rating_seller": realtor.get("rating", {}).get("seller", {}).get("score") if isinstance(realtor.get("rating", {}), dict) else None,
+
+        # Åbent hus og tid på markedet
+        "open_house_date": open_house.get("date"),
+        "days_on_market_current": time_on_market.get("current", {}).get("days") if isinstance(time_on_market.get("current"), dict) else None,
+        "days_on_market_total": time_on_market.get("total", {}).get("days") if isinstance(time_on_market.get("total"), dict) else None,
+
+        # Direkte fra entry
+        "price_cash": entry.get("priceCash"),
+        "per_area_price": entry.get("perAreaPrice"),
+        "number_of_toilets": entry.get("numberOfToilets"),
+        "number_of_rooms": entry.get("numberOfRooms"),
+        "number_of_floors": entry.get("numberOfFloors"),
+        "number_of_bathrooms": entry.get("numberOfBathrooms"),
+        "has_balcony": entry.get("hasBalcony"),
+        "has_elevator": entry.get("hasElevator"),
+        "has_terrace": entry.get("hasTerrace"),
+        "energy_label": entry.get("energyLabel"),
+        "address_type": entry.get("addressType"),
+        "basement_area": entry.get("basementArea"),
+        "description_body": entry.get("descriptionBody"),
+        "description_title": entry.get("descriptionTitle"),
+
+        # Dato for scraping
+        "update_date": update_date,
+    }
+    return flattened
+
 
 flat_data = [flatten_entry(entry, update_date=str(date.today())) for entry in df.to_dict(orient="records")]
 flat_df = pd.DataFrame(flat_data)
