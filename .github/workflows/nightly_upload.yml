@@ -1,0 +1,31 @@
+name: Nightly Boligsiden Data Upload
+
+on:
+  schedule:
+    - cron: '0 1 * * *'  # Kører hver nat kl. 01:00 UTC (dvs. 03:00 dansk tid)
+  workflow_dispatch:    # Tillad manuel kørsel af workflow
+
+jobs:
+  upload_data:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: pip install requests pandas psycopg2-binary beautifulsoup4
+
+    - name: Run upload script
+      env:
+        DB_HOST: ${{ secrets.DB_HOST }}
+        DB_NAME: ${{ secrets.DB_NAME }}
+        DB_USER: ${{ secrets.DB_USER }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        DB_PORT: ${{ secrets.DB_PORT }}
+      run: python upload_to_supabase.py
