@@ -164,7 +164,15 @@ for col in bool_cols:
 
 # --- Nyt: upload til Supabase/Postgres ---
 
+import pandas as pd
+
 def upload_to_supabase(df):
+    import os
+    import psycopg2
+
+    def convert_missing_to_none(row):
+        return [None if (pd.isna(x) or x is pd.NA) else x for x in row]
+
     conn = psycopg2.connect(
         host=os.environ['DB_HOST'],
         database=os.environ['DB_NAME'],
@@ -175,15 +183,7 @@ def upload_to_supabase(df):
     cur = conn.cursor()
 
     for _, row in df.iterrows():
-        # Konverter NaT i datetime-kolonner til None
-        aabent_hus_dato = row['aabent_hus_dato']
-        if pd.isna(aabent_hus_dato):
-            aabent_hus_dato = None
-
-        opdateringsdato = row['opdateringsdato']
-        if pd.isna(opdateringsdato):
-            opdateringsdato = None
-
+        values = convert_missing_to_none(row)
         cur.execute("""
             INSERT INTO boligsiden_data (
                 adresse_id, by, postnummer, vej, husnummer, kommune, region,
@@ -206,22 +206,13 @@ def upload_to_supabase(df):
                 %s, %s, %s, %s,
                 %s, %s, %s, %s
             )
-        """, (
-            row['adresse_id'], row['by'], row['postnummer'], row['vej'], row['husnummer'], row['kommune'], row['region'],
-            row['breddegrad'], row['laengdegrad'], row['seneste_vurdering'], row['boligareal_m2'], row['vaegtet_areal_m2'],
-            row['byggeaar'], row['bygningsareal_primar_m2'], row['bygningsareal_sekundar_m2'], row['udbetaling_kr'],
-            row['brutto_realkredit_kr'], row['netto_realkredit_kr'], row['maegler_navn'], row['maegler_email'],
-            row['maegler_telefon'], row['maegler_rating_saelger'], aabent_hus_dato, row['dage_paa_marked_nu'],
-            row['dage_paa_marked_total'], row['salgspris_kr'], row['pris_per_m2_kr'], row['antal_toiletter'],
-            row['antal_vaerelser'], row['antal_etasjer'], row['antal_badevaerelser'], row['balkon'], row['elevator'],
-            row['terrasse'], row['energimaerke'], row['boligtype'], row['kaelderareal_m2'], row['beskrivelse'],
-            row['overskrift'], opdateringsdato
-        ))
+        """, values)
 
     conn.commit()
     cur.close()
     conn.close()
     print("Data uploaded successfully")
+
 
 
 # Kald upload-funktionen
